@@ -235,6 +235,13 @@
   .att-btn[data-code="ล"].active{ background:var(--sky); border-color:var(--sky); color:#fff; }
   .att-btn[data-code="ส"].active{ background:var(--amber); border-color:var(--amber); color:#fff; }
 
+  .submit-toggle{
+    border:1.5px solid #DCEBF6; background:#FFFFFF; color:var(--ink-soft);
+    border-radius:10px; padding:9px 16px; font-family:'Sarabun',sans-serif; font-weight:700; font-size:13px;
+    cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap;
+  }
+  .submit-toggle.active{ background:var(--green); border-color:var(--green); color:#fff; }
+
   .score-table{ display:flex; flex-direction:column; gap:10px; }
   .score-row{
     background:#FFFFFF; border:1px solid #E2EEF7; border-radius:14px; padding:12px 14px;
@@ -437,6 +444,10 @@
         <span class="status-pill" id="rStatusPill">-</span>
       </div>
     </div>
+    <div class="ledger" id="assignSummaryCard" style="display:none;">
+      <h3>การส่งงาน</h3>
+      <div id="assignRows"></div>
+    </div>
     <div class="ledger">
       <h3>รายละเอียดคะแนน</h3>
       <div id="rows"></div>
@@ -480,10 +491,84 @@
       <span class="cc-name" id="scName">-</span>
       <span class="cc-hint" id="scGroup"></span>
     </div>
-    <div class="card">
-      <div class="status" id="scStatus"></div>
-      <div class="score-table" id="scoreTable"></div>
-      <button class="btn btn-block" id="saveScoreBtn">บันทึกคะแนน</button>
+    <div class="status" id="scStatus"></div>
+
+    <!-- เลือกวิธีบันทึกคะแนน -->
+    <div id="scModePicker" class="grid2">
+      <button class="pick-card" id="scPickByStudent">
+        <div class="icon" style="background:#1E88C7">🧑‍🎓</div>
+        <div class="name">เข้าตามรายชื่อนักเรียน</div>
+        <div class="desc">เลือกนักเรียนทีละคน แล้วกรอกคะแนนทุกช่องของคนนั้นพร้อมกัน</div>
+        <div class="cta">เลือกวิธีนี้ →</div>
+      </button>
+      <button class="pick-card" id="scPickByColumn">
+        <div class="icon" style="background:#B5651D">📝</div>
+        <div class="name">เข้าตามหัวข้อคะแนน</div>
+        <div class="desc">เลือกหัวข้อคะแนน เช่น "คะแนนเก็บ 1" แล้วกรอกของนักเรียนทุกคนพร้อมกัน</div>
+        <div class="cta">เลือกวิธีนี้ →</div>
+      </button>
+      <button class="pick-card" id="scPickByAssignment">
+        <div class="icon" style="background:#2E7D4F">📤</div>
+        <div class="name">เช็คการส่งงาน</div>
+        <div class="desc">ตั้งชื่องาน/จำนวนงานเอง แล้วติกถูกว่าใครส่งแล้วบ้าง</div>
+        <div class="cta">เลือกวิธีนี้ →</div>
+      </button>
+    </div>
+
+    <!-- แบบที่ 1: รายชื่อนักเรียนให้เลือก -->
+    <div id="scByStudentList" style="display:none;">
+      <button class="back-link" id="backToScModePicker1">‹ กลับไปเลือกวิธีบันทึก</button>
+      <div class="grid2" id="scStudentGrid"></div>
+    </div>
+
+    <!-- แบบที่ 1: ฟอร์มกรอกคะแนนของนักเรียน 1 คน ทุกช่อง -->
+    <div id="scByStudentForm" style="display:none;">
+      <button class="back-link" id="backToScStudentList">‹ กลับไปเลือกนักเรียน</button>
+      <div class="card">
+        <div class="context-card" style="margin-bottom:18px;" id="scStudentHeader"></div>
+        <div id="scStudentFields" class="score-inputs" style="flex-direction:column; gap:12px;"></div>
+        <button class="btn btn-block" id="saveByStudentBtn">บันทึกคะแนนของนักเรียนคนนี้</button>
+      </div>
+    </div>
+
+    <!-- แบบที่ 2: รายการหัวข้อคะแนนให้เลือก -->
+    <div id="scByColumnList" style="display:none;">
+      <button class="back-link" id="backToScModePicker2">‹ กลับไปเลือกวิธีบันทึก</button>
+      <div class="grid2" id="scColumnGrid"></div>
+    </div>
+
+    <!-- แบบที่ 2: ฟอร์มกรอกคะแนนหัวข้อเดียว ของนักเรียนทุกคน -->
+    <div id="scByColumnForm" style="display:none;">
+      <button class="back-link" id="backToScColumnList">‹ กลับไปเลือกหัวข้อคะแนน</button>
+      <div class="card">
+        <div class="context-card" style="margin-bottom:18px;" id="scColumnHeader"></div>
+        <div class="roster-list" id="scColumnRoster"></div>
+        <button class="btn btn-block" id="saveByColumnBtn">บันทึกคะแนนหัวข้อนี้ (ทุกคน)</button>
+      </div>
+    </div>
+
+    <!-- แบบที่ 3: รายการงานให้เลือก + ตั้งชื่องานใหม่ -->
+    <div id="scByAssignmentList" style="display:none;">
+      <button class="back-link" id="backToScModePicker3">‹ กลับไปเลือกวิธีบันทึก</button>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="hint" style="margin-top:0; font-weight:700; font-size:14px;">ตั้งชื่องานใหม่</div>
+        <div class="id-slot" style="margin-top:10px;">
+          <input id="newAssignmentName" type="text" placeholder="เช่น ใบงานที่ 4, รายงานบทที่ 2" autocomplete="off">
+          <button class="btn" id="addAssignmentBtn">เพิ่มงาน</button>
+        </div>
+        <div class="hint">เพิ่มได้ไม่จำกัดจำนวนงาน แต่ละงานจะกลายเป็นการ์ดด้านล่างให้กดเข้าไปเช็คการส่งได้ทันที</div>
+      </div>
+      <div class="grid2" id="scAssignmentGrid"></div>
+    </div>
+
+    <!-- แบบที่ 3: ฟอร์มติกส่งงาน ของนักเรียนทุกคน ในงานที่เลือก -->
+    <div id="scByAssignmentForm" style="display:none;">
+      <button class="back-link" id="backToScAssignmentList">‹ กลับไปเลือกงาน</button>
+      <div class="card">
+        <div class="context-card" style="margin-bottom:18px;" id="scAssignmentHeader"></div>
+        <div class="roster-list" id="scAssignmentRoster"></div>
+        <button class="btn btn-block" id="saveByAssignmentBtn">บันทึกการส่งงาน</button>
+      </div>
     </div>
   </div>
 
@@ -526,7 +611,7 @@
   // รหัสผ่านครูตั้งไว้ฝั่ง Apps Script (Script Properties) เท่านั้น — ดู setup-guide.md
   // =========================================================
   const CONFIG = {
-    API_URL: "https://script.google.com/macros/s/AKfycbybDUismByTTJ7UNNTzEMybIa2loBFWnZgLJP9yjRk4MlK0vrEm-LZYSfGIJ7EWj2OjvA/exec", // เช่น "https://script.google.com/macros/s/XXXXXXXX/exec" (ดู setup-guide.md)
+    API_URL: "https://script.google.com/macros/s/AKfycbybEUXrTDoi-ATpPEmicjqj6Ww8GHxq6Uw0F5O5JGW4GFzSY_bHFU-sQiI22sxuGZx9/exec", // เช่น "https://script.google.com/macros/s/XXXXXXXX/exec" (ดู setup-guide.md)
     LOGO_URL: "logo-vec.png", // ใส่ path/URL รูปตราสัญลักษณ์จริง เช่น "logo-vec.png"
     TEACHER: "ครูอิทธิกร หาญวิสุทธิ์",
     DEPARTMENT: "แผนกวิชาช่างไฟฟ้ากำลัง วิทยาลัยเทคนิคโพธาราม",
@@ -549,7 +634,7 @@
 	{
         code: "30104-2007", name: "ระบบควบคุมในงานอุตสาหกรรม",
         groups: [
-          { id: "30104-2007-1", label: "ปวช.2/1" }
+          { id: "30104-2007-1", label: "ปวส.2/1" }
         ]
       }
     ]
@@ -782,6 +867,29 @@
     } else {
       attCard.style.display = 'none';
     }
+
+    // สถานะการส่งงาน — แสดงเฉพาะเมื่อวิชานี้มีการตั้งชื่องานไว้แล้วอย่างน้อย 1 งาน
+    const assignCard = document.getElementById('assignSummaryCard');
+    const assignList = Array.isArray(data.assignments) ? data.assignments : [];
+    if (assignList.length > 0) {
+      assignCard.style.display = 'block';
+      const assignRowsEl = document.getElementById('assignRows');
+      assignRowsEl.innerHTML = '';
+      assignList.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'row';
+        const pillClass = item.submitted ? 'normal' : 'risk';
+        const pillText = item.submitted ? '✓ ส่งแล้ว' : 'ยังไม่ส่ง';
+        row.innerHTML = `
+          <div class="row-top" style="margin-bottom:0;">
+            <span class="label">${item.label}</span>
+            <span class="status-pill ${pillClass}">${pillText}</span>
+          </div>`;
+        assignRowsEl.appendChild(row);
+      });
+    } else {
+      assignCard.style.display = 'none';
+    }
   }
 
   // =========================================================
@@ -903,61 +1011,101 @@
   }
 
   // =========================================================
-  // TEACHER: score entry
+  // TEACHER: score entry (เลือกได้ 2 แบบ: ตามรายชื่อ / ตามหัวข้อคะแนน)
   // =========================================================
   let scData = null;
+  const scViews = ['scModePicker','scByStudentList','scByStudentForm','scByColumnList','scByColumnForm','scByAssignmentList','scByAssignmentForm'];
+  function showScView(id){
+    scViews.forEach(v => { document.getElementById(v).style.display = (v === id) ? (v === 'scModePicker' ? 'grid' : 'block') : 'none'; });
+  }
+  function setScBack(handler){
+    document.getElementById('backScoreToGroups').onclick = handler;
+  }
 
   async function loadScoreEntry(){
     document.getElementById('scCode').textContent = selectedSubject.code;
     document.getElementById('scName').textContent = selectedSubject.name;
     document.getElementById('scGroup').textContent = `กลุ่ม/ห้อง ${selectedSubject.group}`;
-    document.getElementById('scoreTable').innerHTML = '';
     hideStatus('scStatus');
     showPanel('panelScoreEntry');
+    showScView('scModePicker');
+    setScBack(backToGroupsOrSubjects);
+    await refreshScData();
+  }
 
+  async function refreshScData(){
     const apiUrl = getApiUrl();
-    if (!apiUrl){ showStatus('scStatus','error','ยังไม่ได้ตั้งค่าลิงก์ข้อมูล (CONFIG.API_URL)'); return; }
+    if (!apiUrl){ showStatus('scStatus','error','ยังไม่ได้ตั้งค่าลิงก์ข้อมูล (CONFIG.API_URL)'); return false; }
     showStatus('scStatus','loading','กำลังโหลดข้อมูล...');
     try {
       const url = `${apiUrl}?action=scoresheet&subject=${encodeURIComponent(selectedSubject.id)}&pin=${encodeURIComponent(teacherPin)}`;
       const res = await fetch(url);
       const data = await res.json();
-      if (data.error){ showStatus('scStatus','error',data.error); return; }
+      if (data.error){ showStatus('scStatus','error',data.error); return false; }
       scData = data;
       hideStatus('scStatus');
-      renderScoreTable();
-    } catch(err){ showStatus('scStatus','error','โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่'); }
+      return true;
+    } catch(err){ showStatus('scStatus','error','โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่'); return false; }
   }
 
-  function renderScoreTable(){
-    const tbl = document.getElementById('scoreTable');
-    tbl.innerHTML = '';
-    (scData.students || []).forEach(stu => {
-      const rowScores = scData.scores[stu.id] || {};
-      const row = document.createElement('div');
-      row.className = 'score-row';
-      row.dataset.id = stu.id;
-      const fields = (scData.scoreColumns || []).map(col => `
-        <div class="score-field">
-          <label>${col.label} (เต็ม ${col.max})</label>
-          <input type="number" data-col="${col.label}" value="${rowScores[col.label] ?? ''}">
-        </div>`).join('');
-      row.innerHTML = `
-        <div class="who"><div class="nm">${stu.name}</div><div class="id">รหัส ${stu.id}${stu.classroom ? ' · '+stu.classroom : ''}</div></div>
-        <div class="score-inputs">${fields}</div>`;
-      tbl.appendChild(row);
+  document.getElementById('scPickByStudent').addEventListener('click', () => {
+    renderScStudentGrid();
+    showScView('scByStudentList');
+    setScBack(() => showScView('scModePicker'));
+  });
+  document.getElementById('scPickByColumn').addEventListener('click', () => {
+    renderScColumnGrid();
+    showScView('scByColumnList');
+    setScBack(() => showScView('scModePicker'));
+  });
+  document.getElementById('backToScModePicker1').addEventListener('click', () => { showScView('scModePicker'); setScBack(backToGroupsOrSubjects); });
+  document.getElementById('backToScModePicker2').addEventListener('click', () => { showScView('scModePicker'); setScBack(backToGroupsOrSubjects); });
+
+  // ---------- แบบที่ 1: เข้าตามรายชื่อนักเรียน ----------
+  function renderScStudentGrid(){
+    const grid = document.getElementById('scStudentGrid');
+    grid.innerHTML = '';
+    (scData.students || []).forEach((stu, i) => {
+      const accent = ACCENTS[i % ACCENTS.length];
+      const card = document.createElement('button');
+      card.className = 'pick-card';
+      card.innerHTML = `
+        <div class="icon" style="background:${accent}">${String(i+1).padStart(2,'0')}</div>
+        <div class="name">${stu.name}</div>
+        <div class="code">รหัส ${stu.id}${stu.classroom ? ' · '+stu.classroom : ''}</div>
+        <div class="cta">กรอกคะแนน →</div>`;
+      card.addEventListener('click', () => openScStudentForm(stu));
+      grid.appendChild(card);
     });
   }
 
-  document.getElementById('saveScoreBtn').addEventListener('click', saveScores);
-  async function saveScores(){
+  function openScStudentForm(stu){
+    const rowScores = scData.scores[stu.id] || {};
+    document.getElementById('scStudentHeader').innerHTML = `
+      <span class="cc-name">${stu.name}</span>
+      <span class="cc-hint">รหัส ${stu.id}${stu.classroom ? ' · '+stu.classroom : ''}</span>`;
+    const fieldsEl = document.getElementById('scStudentFields');
+    fieldsEl.innerHTML = (scData.scoreColumns || []).map(col => `
+      <div class="score-field" style="min-width:auto;">
+        <label>${col.label} (เต็ม ${col.max})</label>
+        <input type="number" data-col="${col.label}" value="${rowScores[col.label] ?? ''}">
+      </div>`).join('');
+    fieldsEl.dataset.studentId = stu.id;
+    showScView('scByStudentForm');
+    setScBack(() => { renderScStudentGrid(); showScView('scByStudentList'); });
+  }
+  document.getElementById('backToScStudentList').addEventListener('click', () => {
+    renderScStudentGrid(); showScView('scByStudentList'); setScBack(() => showScView('scModePicker'));
+  });
+
+  document.getElementById('saveByStudentBtn').addEventListener('click', async () => {
     const apiUrl = getApiUrl();
     if (!apiUrl){ showStatus('scStatus','error','ยังไม่ได้ตั้งค่าลิงก์ข้อมูล'); return; }
+    const fieldsEl = document.getElementById('scStudentFields');
+    const studentId = fieldsEl.dataset.studentId;
     const entries = [];
-    document.querySelectorAll('#scoreTable .score-row').forEach(row => {
-      row.querySelectorAll('input[data-col]').forEach(inp => {
-        if (inp.value !== '') entries.push({ id: row.dataset.id, column: inp.dataset.col, value: Number(inp.value) });
-      });
+    fieldsEl.querySelectorAll('input[data-col]').forEach(inp => {
+      if (inp.value !== '') entries.push({ id: studentId, column: inp.dataset.col, value: Number(inp.value) });
     });
     showStatus('scStatus','loading','กำลังบันทึก...');
     try {
@@ -969,8 +1117,192 @@
       const data = await res.json();
       if (data.error){ showStatus('scStatus','error',data.error); return; }
       showStatus('scStatus','ok', data.message || 'บันทึกคะแนนเรียบร้อย');
+      if (scData.scores[studentId]) {
+        entries.forEach(en => { scData.scores[studentId][en.column] = en.value; });
+      }
     } catch(err){ showStatus('scStatus','error','บันทึกไม่สำเร็จ กรุณาลองใหม่'); }
+  });
+
+  // ---------- แบบที่ 2: เข้าตามหัวข้อคะแนน ----------
+  function renderScColumnGrid(){
+    const grid = document.getElementById('scColumnGrid');
+    grid.innerHTML = '';
+    (scData.scoreColumns || []).forEach((col, i) => {
+      const accent = ACCENTS[i % ACCENTS.length];
+      const card = document.createElement('button');
+      card.className = 'pick-card';
+      card.innerHTML = `
+        <div class="icon" style="background:${accent}">${String(i+1).padStart(2,'0')}</div>
+        <div class="name">${col.label}</div>
+        <div class="code">คะแนนเต็ม ${col.max}</div>
+        <div class="cta">กรอกคะแนนทุกคน →</div>`;
+      card.addEventListener('click', () => openScColumnForm(col));
+      grid.appendChild(card);
+    });
   }
+
+  function openScColumnForm(col){
+    document.getElementById('scColumnHeader').innerHTML = `
+      <span class="cc-name">${col.label}</span>
+      <span class="cc-hint">คะแนนเต็ม ${col.max} — กรอกของนักเรียนทุกคนแล้วบันทึกพร้อมกัน</span>`;
+    const rosterEl = document.getElementById('scColumnRoster');
+    rosterEl.innerHTML = '';
+    rosterEl.dataset.column = col.label;
+    (scData.students || []).forEach(stu => {
+      const val = (scData.scores[stu.id] || {})[col.label];
+      const row = document.createElement('div');
+      row.className = 'roster-row';
+      row.dataset.id = stu.id;
+      row.innerHTML = `
+        <div class="who"><div class="nm">${stu.name}</div><div class="id">รหัส ${stu.id}${stu.classroom ? ' · '+stu.classroom : ''}</div></div>
+        <input type="number" data-score-input style="width:90px; padding:8px 10px; border-radius:8px; border:1.5px solid #DCEBF6; font-family:'IBM Plex Mono',monospace; font-size:14px; text-align:center;" value="${val ?? ''}">`;
+      rosterEl.appendChild(row);
+    });
+    showScView('scByColumnForm');
+    setScBack(() => { renderScColumnGrid(); showScView('scByColumnList'); });
+  }
+  document.getElementById('backToScColumnList').addEventListener('click', () => {
+    renderScColumnGrid(); showScView('scByColumnList'); setScBack(() => showScView('scModePicker'));
+  });
+
+  document.getElementById('saveByColumnBtn').addEventListener('click', async () => {
+    const apiUrl = getApiUrl();
+    if (!apiUrl){ showStatus('scStatus','error','ยังไม่ได้ตั้งค่าลิงก์ข้อมูล'); return; }
+    const rosterEl = document.getElementById('scColumnRoster');
+    const column = rosterEl.dataset.column;
+    const entries = [];
+    rosterEl.querySelectorAll('.roster-row').forEach(row => {
+      const inp = row.querySelector('[data-score-input]');
+      if (inp.value !== '') entries.push({ id: row.dataset.id, column, value: Number(inp.value) });
+    });
+    showStatus('scStatus','loading','กำลังบันทึก...');
+    try {
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action:'saveScores', pin:teacherPin, subject:selectedSubject.id, entries })
+      });
+      const data = await res.json();
+      if (data.error){ showStatus('scStatus','error',data.error); return; }
+      showStatus('scStatus','ok', data.message || 'บันทึกคะแนนเรียบร้อย');
+      entries.forEach(en => {
+        if (!scData.scores[en.id]) scData.scores[en.id] = {};
+        scData.scores[en.id][en.column] = en.value;
+      });
+    } catch(err){ showStatus('scStatus','error','บันทึกไม่สำเร็จ กรุณาลองใหม่'); }
+  });
+
+  // ---------- แบบที่ 3: เช็คการส่งงาน (ข้อมูลอยู่ในชีตคะแนนเดียวกัน ใช้ scData ที่โหลดไว้แล้ว) ----------
+  document.getElementById('scPickByAssignment').addEventListener('click', () => {
+    renderScAssignmentGrid();
+    showScView('scByAssignmentList');
+    setScBack(() => showScView('scModePicker'));
+  });
+
+  function renderScAssignmentGrid(){
+    const grid = document.getElementById('scAssignmentGrid');
+    grid.innerHTML = '';
+    if (!scData) return;
+    (scData.assignments || []).forEach((label, i) => {
+      const accent = ACCENTS[i % ACCENTS.length];
+      const total = (scData.students || []).length;
+      const submittedCount = (scData.students || []).filter(stu => (scData.submissions[stu.id] || {})[label] === '✓').length;
+      const card = document.createElement('button');
+      card.className = 'pick-card';
+      card.innerHTML = `
+        <div class="icon" style="background:${accent}">${String(i+1).padStart(2,'0')}</div>
+        <div class="name">${label}</div>
+        <div class="code">ส่งแล้ว ${submittedCount}/${total} คน</div>
+        <div class="cta">เช็คการส่ง →</div>`;
+      card.addEventListener('click', () => openScAssignmentForm(label));
+      grid.appendChild(card);
+    });
+    if ((scData.assignments || []).length === 0) {
+      grid.innerHTML = `<div class="status show notfound" style="grid-column:1/-1;">ยังไม่มีงานที่ตั้งไว้ — พิมพ์ชื่องานด้านบนแล้วกด "เพิ่มงาน" เพื่อเริ่มเช็คการส่งงานครั้งแรก</div>`;
+    }
+  }
+
+  document.getElementById('addAssignmentBtn').addEventListener('click', async () => {
+    const nameInput = document.getElementById('newAssignmentName');
+    const name = nameInput.value.trim();
+    if (!name){ showStatus('scStatus','error','กรุณาตั้งชื่องานก่อนเพิ่ม'); return; }
+    const apiUrl = getApiUrl();
+    if (!apiUrl){ showStatus('scStatus','error','ยังไม่ได้ตั้งค่าลิงก์ข้อมูล'); return; }
+    showStatus('scStatus','loading','กำลังเพิ่มงาน...');
+    try {
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action:'addAssignment', pin:teacherPin, subject:selectedSubject.id, name })
+      });
+      const data = await res.json();
+      if (data.error){ showStatus('scStatus','error',data.error); return; }
+      showStatus('scStatus','ok', data.message || 'เพิ่มงานเรียบร้อย');
+      nameInput.value = '';
+      await refreshScData();
+      renderScAssignmentGrid();
+    } catch(err){ showStatus('scStatus','error','เพิ่มงานไม่สำเร็จ กรุณาลองใหม่'); }
+  });
+
+  document.getElementById('backToScModePicker3').addEventListener('click', () => { showScView('scModePicker'); setScBack(backToGroupsOrSubjects); });
+
+  function openScAssignmentForm(label){
+    document.getElementById('scAssignmentHeader').innerHTML = `
+      <span class="cc-name">${label}</span>
+      <span class="cc-hint">ติกว่านักเรียนคนไหนส่งงานนี้แล้วบ้าง แล้วกดบันทึก</span>`;
+    const rosterEl = document.getElementById('scAssignmentRoster');
+    rosterEl.innerHTML = '';
+    rosterEl.dataset.assignment = label;
+    (scData.students || []).forEach(stu => {
+      const submitted = (scData.submissions[stu.id] || {})[label] === '✓';
+      const row = document.createElement('div');
+      row.className = 'roster-row';
+      row.dataset.id = stu.id;
+      row.innerHTML = `
+        <div class="who"><div class="nm">${stu.name}</div><div class="id">รหัส ${stu.id}${stu.classroom ? ' · '+stu.classroom : ''}</div></div>
+        <button class="submit-toggle ${submitted ? 'active' : ''}" type="button">${submitted ? '✓ ส่งแล้ว' : 'ยังไม่ส่ง'}</button>`;
+      const toggleBtn = row.querySelector('.submit-toggle');
+      toggleBtn.addEventListener('click', () => {
+        const nowActive = !toggleBtn.classList.contains('active');
+        toggleBtn.classList.toggle('active', nowActive);
+        toggleBtn.textContent = nowActive ? '✓ ส่งแล้ว' : 'ยังไม่ส่ง';
+      });
+      rosterEl.appendChild(row);
+    });
+    showScView('scByAssignmentForm');
+    setScBack(() => { renderScAssignmentGrid(); showScView('scByAssignmentList'); });
+  }
+
+  document.getElementById('backToScAssignmentList').addEventListener('click', () => {
+    renderScAssignmentGrid(); showScView('scByAssignmentList'); setScBack(() => showScView('scModePicker'));
+  });
+
+  document.getElementById('saveByAssignmentBtn').addEventListener('click', async () => {
+    const apiUrl = getApiUrl();
+    if (!apiUrl){ showStatus('scStatus','error','ยังไม่ได้ตั้งค่าลิงก์ข้อมูล'); return; }
+    const rosterEl = document.getElementById('scAssignmentRoster');
+    const assignment = rosterEl.dataset.assignment;
+    const entries = [];
+    rosterEl.querySelectorAll('.roster-row').forEach(row => {
+      const active = row.querySelector('.submit-toggle').classList.contains('active');
+      entries.push({ id: row.dataset.id, submitted: active });
+    });
+    showStatus('scStatus','loading','กำลังบันทึก...');
+    try {
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action:'saveSubmission', pin:teacherPin, subject:selectedSubject.id, assignment, entries })
+      });
+      const data = await res.json();
+      if (data.error){ showStatus('scStatus','error',data.error); return; }
+      showStatus('scStatus','ok', data.message || 'บันทึกการส่งงานเรียบร้อย');
+      entries.forEach(en => {
+        if (!scData.submissions[en.id]) scData.submissions[en.id] = {};
+        scData.submissions[en.id][assignment] = en.submitted ? '✓' : '';
+      });
+    } catch(err){ showStatus('scStatus','error','บันทึกไม่สำเร็จ กรุณาลองใหม่'); }
+  });
 
   // =========================================================
   // TEACHER: overview
