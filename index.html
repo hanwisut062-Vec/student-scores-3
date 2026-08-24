@@ -81,9 +81,25 @@
     background:rgba(255,255,255,.94); border:1px solid #0B3A63; color:#0B2A47;
     font-family:'Sarabun',sans-serif; font-size:13px; font-weight:700; cursor:pointer;
     padding:8px 16px; border-radius:999px; display:inline-flex; align-items:center; gap:6px;
-    margin-bottom:16px; box-shadow:0 4px 12px rgba(3,20,40,.25);
+    margin-bottom:16px; margin-right:8px; box-shadow:0 4px 12px rgba(3,20,40,.25);
   }
   .back-link:hover{ background:#FFFFFF; }
+
+  .home-link{
+    background:rgba(255,255,255,.94); border:1px solid #2F6E62; color:#1E5B37;
+    font-family:'Sarabun',sans-serif; font-size:13px; font-weight:700; cursor:pointer;
+    padding:8px 16px; border-radius:999px; display:inline-flex; align-items:center; gap:6px;
+    margin-bottom:16px; box-shadow:0 4px 12px rgba(3,20,40,.25);
+  }
+  .home-link:hover{ background:#FFFFFF; }
+
+  .mode-label{ text-align:center; margin:-6px 0 20px; }
+  .mode-label span{
+    display:inline-flex; align-items:center; gap:8px;
+    background:rgba(255,255,255,.94); border:1px solid #0B3A63; color:#0B2A47;
+    font-weight:700; font-size:13.5px; padding:8px 18px; border-radius:999px;
+    box-shadow:0 4px 12px rgba(3,20,40,.2);
+  }
 
   .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   @media(max-width:520px){ .grid2{ grid-template-columns:1fr; } }
@@ -337,6 +353,8 @@
   </div>
 
   <div class="ladder-rail" aria-hidden="true"></div>
+
+  <div class="mode-label" id="modeLabel" style="display:none;"></div>
 
   <!-- HOME: choose role -->
   <div class="panel show" id="panelHome">
@@ -611,7 +629,7 @@
   // รหัสผ่านครูตั้งไว้ฝั่ง Apps Script (Script Properties) เท่านั้น — ดู setup-guide.md
   // =========================================================
   const CONFIG = {
-    API_URL: "https://script.google.com/macros/s/AKfycbybEUXrTDoi-ATpPEmicjqj6Ww8GHxq6Uw0F5O5JGW4GFzSY_bHFU-sQiI22sxuGZx9/exec", // เช่น "https://script.google.com/macros/s/XXXXXXXX/exec" (ดู setup-guide.md)
+    API_URL: "https://script.google.com/macros/s/AKfycbzoVd0z68zyNshNmrvLE4ixqRldfD4Qq1rf-tM76Rn4_fjo3McfcFDAQAsqHrQ_xEz-3w/exec", // เช่น "https://script.google.com/macros/s/XXXXXXXX/exec" (ดู setup-guide.md)
     LOGO_URL: "logo-vec.png", // ใส่ path/URL รูปตราสัญลักษณ์จริง เช่น "logo-vec.png"
     TEACHER: "ครูอิทธิกร หาญวิสุทธิ์",
     DEPARTMENT: "แผนกวิชาช่างไฟฟ้ากำลัง วิทยาลัยเทคนิคโพธาราม",
@@ -658,6 +676,43 @@
 
   function getApiUrl(){ return CONFIG.API_URL || sessionApiUrl; }
 
+  // ---------- mode label (บอกว่าตอนนี้อยู่ในระบบอะไร) ----------
+  const MODE_LABELS = {
+    student: '🎓 นักเรียน: ตรวจสอบคะแนน',
+    attendance: '📋 ครู: เช็คชื่อ',
+    scoreEntry: '✏️ ครู: บันทึกคะแนน',
+    overview: '📊 ครู: ดูภาพรวม'
+  };
+  function showModeLabel(){
+    const el = document.getElementById('modeLabel');
+    el.innerHTML = `<span>${MODE_LABELS[mode] || ''}</span>`;
+    el.style.display = 'block';
+  }
+  function hideModeLabel(){
+    document.getElementById('modeLabel').style.display = 'none';
+  }
+
+  // ---------- ปุ่ม "กลับหน้าหลัก" — แทรกไว้ข้าง back-link ทุกปุ่มโดยอัตโนมัติ ----------
+  function goHome(){
+    selectedSubject = null;
+    currentSubjectDef = null;
+    hideModeLabel();
+    showPanel('panelHome');
+  }
+  function addHomeButtonsEverywhere(){
+    document.querySelectorAll('.back-link').forEach(btn => {
+      if (btn.id === 'backPinToHome') return; // ปุ่มนี้กลับหน้าหลักอยู่แล้ว ไม่ต้องซ้ำ
+      if (btn.nextElementSibling && btn.nextElementSibling.classList.contains('home-link')) return;
+      const homeBtn = document.createElement('button');
+      homeBtn.type = 'button';
+      homeBtn.className = 'home-link';
+      homeBtn.textContent = '🏠 กลับหน้าหลัก';
+      homeBtn.addEventListener('click', goHome);
+      btn.insertAdjacentElement('afterend', homeBtn);
+    });
+  }
+  addHomeButtonsEverywhere();
+
   // ---------- panels ----------
   const panels = {};
   ['panelHome','panelPin','panelSubjects','panelGroups','panelId','panelResult',
@@ -674,17 +729,19 @@
     mode = 'student';
     document.getElementById('backSubjectsDynamic').onclick = () => showPanel('panelHome');
     renderSubjectGrid();
+    showModeLabel();
     showPanel('panelSubjects');
   });
   function goTeacherMode(m){
     mode = m;
+    hideModeLabel();
     showPanel('panelPin');
   }
   document.getElementById('cardAttendance').addEventListener('click', () => goTeacherMode('attendance'));
   document.getElementById('cardScoreEntry').addEventListener('click', () => goTeacherMode('scoreEntry'));
   document.getElementById('cardOverview').addEventListener('click', () => goTeacherMode('overview'));
 
-  document.getElementById('backPinToHome').addEventListener('click', () => showPanel('panelHome'));
+  document.getElementById('backPinToHome').addEventListener('click', goHome);
   document.getElementById('pinSubmit').addEventListener('click', submitPin);
   document.getElementById('pinInput').addEventListener('keydown', e => { if (e.key === 'Enter') submitPin(); });
   function submitPin(){
@@ -695,6 +752,7 @@
     st.className = 'status';
     document.getElementById('backSubjectsDynamic').onclick = () => showPanel('panelPin');
     renderSubjectGrid();
+    showModeLabel();
     showPanel('panelSubjects');
   }
 
