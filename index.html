@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบคะแนนและเช็คชื่อ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pridi:wght@400;500;600&family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B3A63;
+    --cream:#FFFFFF;
+    --paper:#F3F8FC;
+    --ink:#0E2A47;
+    --ink-soft:#2E4A64;
+    --cyan:#4FC3F7;
+    --cyan-light:#8CD1FF;
+    --sky:#1E88C7;
+    --coral:#C0432E;
+    --amber:#B5651D;
+    --green:#2E7D4F;
+    --line: rgba(140,209,255,.28);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh; position:relative; overflow-x:hidden;
+    background:
+      radial-gradient(1100px 600px at 12% -10%, #12518A 0%, transparent 58%),
+      radial-gradient(900px 550px at 108% 8%, #0E4576 0%, transparent 55%),
+      var(--bg);
+    font-family:'Sarabun', sans-serif; color:var(--cream);
+    display:flex; justify-content:center; padding:32px 16px 64px;
+  }
+  body::before{
+    content:''; position:fixed; inset:0; z-index:-2; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size:42px 42px;
+  }
+  body::after{
+    content:''; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cg stroke='%23ffffff' stroke-width='1.3' fill='none' opacity='0.07'%3E%3Cpath d='M10 30 H70 V90 H140'/%3E%3Ccircle cx='70' cy='90' r='3'/%3E%3Cpath d='M160 10 V60 H210'/%3E%3Ccircle cx='160' cy='60' r='3'/%3E%3Crect x='90' y='128' width='42' height='24' rx='3'/%3E%3Cpath d='M90 136 H58'/%3E%3Cpath d='M90 146 H58'/%3E%3Cpath d='M132 136 H172'/%3E%3Cpath d='M132 146 H172'/%3E%3Cpath d='M30 158 V202 H92'/%3E%3Ccircle cx='30' cy='158' r='3'/%3E%3Ccircle cx='92' cy='202' r='3'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat:repeat;
+  }
+  .wrap{width:100%; max-width:760px; position:relative;}
+
+  .hero{ text-align:center; margin-bottom:24px; }
+  .logo-badge{ width:80px; height:80px; margin:0 auto 12px; filter:drop-shadow(0 8px 18px rgba(0,0,0,.35)); }
+  .logo-badge img, .logo-badge svg{ width:100%; height:100%; display:block; }
+  .hero .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:11.5px; letter-spacing:.2em;
+    color:var(--cyan-light); text-transform:uppercase; opacity:.9;
+  }
+  .hero h1{ font-family:'Pridi', serif; font-weight:600; font-size:27px; margin:8px 0 10px; }
+  .org-card{
+    display:inline-flex; flex-direction:column; gap:2px; padding:10px 18px;
+    border:1px solid #0B3A63; border-radius:12px; background:rgba(255,255,255,.92);
+    font-size:13.5px; color:#0B2A47; font-weight:600;
+  }
+  .org-card b{ color:#08213A; font-weight:700; }
+  .term-tag{
+    display:inline-block; margin-top:12px; font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px; letter-spacing:.05em; color:#0B2A47; font-weight:600;
+    border:1px dashed #0B3A63; border-radius:999px; padding:4px 14px; background:rgba(255,255,255,.85);
+  }
+
+  .ladder-rail{
+    height:30px; position:relative; margin:22px 0 26px;
+    background:repeating-linear-gradient(90deg, rgba(140,209,255,.55) 0 2px, transparent 2px 40px);
+    background-position:center; background-repeat:repeat-x; background-size:40px 14px;
+  }
+  .ladder-rail::before, .ladder-rail::after{
+    content:''; position:absolute; left:0; right:0; height:1px; background:rgba(140,209,255,.55);
+  }
+  .ladder-rail::before{ top:8px; } .ladder-rail::after{ bottom:8px; }
+
+  .panel{ display:none; } .panel.show{ display:block; }
+
+  .back-link{
+    background:rgba(255,255,255,.94); border:1px solid #0B3A63; color:#0B2A47;
+    font-family:'Sarabun',sans-serif; font-size:13px; font-weight:700; cursor:pointer;
+    padding:8px 16px; border-radius:999px; display:inline-flex; align-items:center; gap:6px;
+    margin-bottom:16px; box-shadow:0 4px 12px rgba(3,20,40,.25);
+  }
+  .back-link:hover{ background:#FFFFFF; }
+
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media(max-width:520px){ .grid2{ grid-template-columns:1fr; } }
+
+  .pick-card{
+    background:var(--paper); color:var(--ink); border-radius:16px; padding:20px 20px 18px;
+    text-align:left; border:1px solid #DCEBF6; cursor:pointer;
+    box-shadow:0 14px 30px rgba(3,20,40,.22); transition:transform .15s ease, box-shadow .15s ease;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .pick-card:hover{ transform:translateY(-3px); box-shadow:0 18px 36px rgba(3,20,40,.3); }
+  .pick-card .icon{
+    width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-size:18px; color:#fff;
+  }
+  .pick-card .code{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:600; color:var(--ink-soft); }
+  .pick-card .name{ font-family:'Pridi',serif; font-weight:600; font-size:16.5px; line-height:1.35; }
+  .pick-card .desc{ font-size:12.5px; color:var(--ink-soft); font-weight:500; }
+  .pick-card .badge{
+    display:inline-flex; align-self:flex-start; align-items:center; gap:5px;
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:#0B3A63;
+    background:#E4F0FA; border:1px solid #BFDCF2; border-radius:999px; padding:3px 10px;
+  }
+  .pick-card .cta{ margin-top:auto; font-size:12.5px; font-weight:600; color:var(--sky); display:flex; align-items:center; gap:5px; }
+
+  .context-card{
+    background:var(--paper); color:var(--ink); border-radius:18px; padding:20px 24px;
+    text-align:center; box-shadow:0 20px 50px rgba(3,20,40,.3); border:1px solid #DCEBF6;
+    margin-bottom:18px;
+  }
+  .context-card .cc-code{
+    display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:11.5px; letter-spacing:.05em;
+    font-weight:600; color:var(--ink-soft); border:1px solid #DCEBF6; border-radius:999px; padding:3px 12px;
+  }
+  .context-card .cc-name{ display:block; font-family:'Pridi',serif; font-weight:600; font-size:21px; color:var(--ink); margin-top:10px; }
+  .context-card .cc-hint{ display:block; margin-top:8px; font-size:12.5px; font-weight:500; color:var(--ink-soft); }
+
+  .card{
+    background:var(--paper); color:var(--ink); border-radius:18px;
+    padding:26px 24px; box-shadow:0 20px 50px rgba(3,20,40,.28);
+    border:1px solid #DCEBF6;
+  }
+  .id-slot{ display:flex; gap:10px; align-items:stretch; }
+  .id-slot input{
+    flex:1; border:1.5px dashed #A9CBE5; background:#FFFFFF; border-radius:12px;
+    padding:14px 16px; font-family:'IBM Plex Mono', monospace; font-size:17px;
+    letter-spacing:.06em; color:var(--ink); outline:none;
+  }
+  .id-slot input:focus{ border-color:var(--sky); border-style:solid; }
+  .id-slot input::placeholder{ color:#9FB6C9; letter-spacing:normal; font-family:'Sarabun',sans-serif; }
+  .btn{
+    border:none; border-radius:12px; padding:0 22px; font-family:'Sarabun',sans-serif;
+    font-weight:700; font-size:15px; background:var(--sky); color:#FFFFFF; cursor:pointer;
+    transition:transform .15s ease, background .15s ease;
+  }
+  .btn:hover{ background:#166FA3; } .btn:active{ transform:scale(.97); } .btn:disabled{ opacity:.55; cursor:default; }
+  .btn-block{ width:100%; padding:13px; margin-top:6px; }
+  .hint{ margin-top:10px; font-size:12.5px; font-weight:500; color:var(--ink-soft); }
+
+  .status{ margin-top:18px; padding:14px 16px; border-radius:12px; font-size:14px; display:none; line-height:1.6; }
+  .status.show{ display:block; }
+  .status.error{ background:#FBEAE6; color:#8C3320; border:1px solid #E7B4A6; }
+  .status.notfound{ background:#FDF3D9; color:#7A5B10; border:1px solid #E9CE8C; }
+  .status.loading{ background:#EAF3FA; color:var(--ink-soft); }
+  .status.ok{ background:#E7F5EC; color:#1E5B37; border:1px solid #B9E0C6; }
+
+  .profile{
+    background:var(--paper); color:var(--ink); border-radius:18px; padding:22px 24px;
+    box-shadow:0 20px 50px rgba(3,20,40,.3); border:1px solid #DCEBF6;
+    display:flex; align-items:center; gap:18px; margin-bottom:14px;
+  }
+  .ring-wrap{ position:relative; width:92px; height:92px; flex:none; }
+  .ring-wrap svg{ transform:rotate(-90deg); }
+  .ring-track{ fill:none; stroke:#E7DFC9; stroke-width:8; }
+  .ring-fill{ fill:none; stroke:var(--sky); stroke-width:8; stroke-linecap:round; transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1); }
+  .ring-center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ring-center .pct{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:18px; }
+  .ring-center .lbl{ font-size:9.5px; color:var(--ink-soft); }
+  .profile-info{ flex:1; min-width:0; }
+  .profile-info .subj{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ink-soft); margin-bottom:2px; }
+  .profile-info .name{ font-family:'Pridi',serif; font-size:18px; font-weight:600; }
+  .profile-info .meta{ font-size:13px; color:var(--ink-soft); margin-top:2px; }
+  .grade-badge{
+    font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:15px;
+    background:var(--sky); color:#FFFFFF; padding:6px 12px; border-radius:999px; white-space:nowrap;
+  }
+
+  .ledger{
+    background:var(--paper); color:var(--ink); border-radius:18px; padding:8px 24px 12px;
+    box-shadow:0 20px 50px rgba(3,20,40,.3); border:1px solid #DCEBF6; margin-bottom:14px;
+  }
+  .ledger h3{ font-family:'Pridi',serif; font-weight:600; font-size:15px; color:var(--ink-soft); margin:18px 0 12px; }
+  .row{ padding:12px 0; border-bottom:1px solid #E2EEF7; }
+  .row:last-child{ border-bottom:none; }
+  .row-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px; }
+  .row-top .label{ font-size:14.5px; font-weight:700; }
+  .row-top .score{ font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:var(--ink-soft); }
+  .bar-track{ height:8px; border-radius:999px; background:#E2EEF7; overflow:hidden; }
+  .bar-fill{ height:100%; border-radius:999px; background:var(--sky); transition:width .7s ease; }
+  .bar-fill.warn{ background:var(--coral); }
+
+  .result-actions{ display:flex; gap:10px; }
+  .btn-ghost{
+    flex:1; border:1px solid #0B3A63; background:rgba(255,255,255,.94); color:#0B2A47;
+    border-radius:12px; padding:12px; font-family:'Sarabun',sans-serif; font-weight:700; font-size:13.5px;
+    cursor:pointer; box-shadow:0 4px 12px rgba(3,20,40,.2);
+  }
+  .btn-ghost:hover{ background:#FFFFFF; }
+
+  .footer-note{ text-align:center; margin-top:24px; font-size:12.5px; color:#EAF5FF; opacity:.92; }
+  .privacy-note{ text-align:center; margin-top:10px; font-size:11.5px; color:#CFE4F5; opacity:.8; line-height:1.6; }
+
+  /* teacher-only widgets */
+  .pin-card{ max-width:360px; margin:0 auto; }
+  .pin-card input{
+    width:100%; text-align:center; letter-spacing:.3em; font-size:22px;
+    font-family:'IBM Plex Mono',monospace; border:1.5px dashed #A9CBE5; background:#FFFFFF;
+    border-radius:12px; padding:14px; color:var(--ink); outline:none;
+  }
+  .pin-card input:focus{ border-color:var(--sky); border-style:solid; }
+
+  .week-select-row{ display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+  .week-select-row select{
+    flex:1; min-width:160px; padding:12px 14px; border-radius:12px; border:1.5px solid #DCEBF6;
+    background:#FFFFFF; color:var(--ink); font-family:'Sarabun',sans-serif; font-size:14px; font-weight:600;
+  }
+  .week-select-row select.holiday-select{
+    flex:none; padding:8px 12px; border-radius:999px; border:1px solid #F0C79A;
+    background:#FCE8D5; color:var(--ink-soft); font-family:'Sarabun',sans-serif; font-weight:600; font-size:13px;
+    min-width:0;
+  }
+
+  .roster-list{ display:flex; flex-direction:column; gap:10px; }
+  .roster-row{
+    background:#FFFFFF; border:1px solid #E2EEF7; border-radius:14px; padding:12px 14px;
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .roster-row .who{ flex:1; min-width:140px; }
+  .roster-row .who .nm{ font-weight:700; font-size:14.5px; }
+  .roster-row .who .id{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ink-soft); }
+  .att-btns{ display:flex; gap:6px; flex-wrap:wrap; }
+  .att-btn{
+    border:1.5px solid #DCEBF6; background:#FFFFFF; color:var(--ink-soft);
+    border-radius:10px; padding:8px 12px; font-family:'Sarabun',sans-serif; font-weight:700; font-size:13px;
+    cursor:pointer; min-width:52px;
+  }
+  .att-btn[data-code="ม"].active{ background:var(--green); border-color:var(--green); color:#fff; }
+  .att-btn[data-code="ข"].active{ background:var(--coral); border-color:var(--coral); color:#fff; }
+  .att-btn[data-code="ล"].active{ background:var(--sky); border-color:var(--sky); color:#fff; }
+  .att-btn[data-code="ส"].active{ background:var(--amber); border-color:var(--amber); color:#fff; }
+
+  .score-table{ display:flex; flex-direction:column; gap:10px; }
+  .score-row{
+    background:#FFFFFF; border:1px solid #E2EEF7; border-radius:14px; padding:12px 14px;
+  }
+  .score-row .who{ margin-bottom:8px; }
+  .score-row .who .nm{ font-weight:700; font-size:14.5px; }
+  .score-row .who .id{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ink-soft); }
+  .score-inputs{ display:flex; gap:8px; flex-wrap:wrap; }
+  .score-field{ display:flex; flex-direction:column; gap:4px; min-width:88px; }
+  .score-field label{ font-size:10.5px; font-weight:600; color:var(--ink-soft); }
+  .score-field input{
+    width:100%; padding:8px 10px; border-radius:8px; border:1.5px solid #DCEBF6;
+    font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--ink); text-align:center;
+  }
+  .score-field input:focus{ border-color:var(--sky); outline:none; }
+
+  .stat-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+  @media(max-width:480px){ .stat-grid{ grid-template-columns:1fr 1fr; } }
+  .stat-box{
+    background:#FFFFFF; border:1px solid #E2EEF7; border-radius:14px; padding:14px; text-align:center;
+  }
+  .stat-box .num{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:22px; color:var(--ink); }
+  .stat-box .lbl{ font-size:11px; color:var(--ink-soft); margin-top:4px; font-weight:600; }
+  .stat-box.risk .num{ color:var(--amber); }
+  .stat-box.kr .num{ color:var(--coral); }
+
+  .risk-list{ margin-bottom:16px; }
+  .risk-item{
+    background:#FCEEE8; border:1px solid #F0C0A6; border-radius:12px; padding:10px 14px;
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:10px; flex-wrap:wrap;
+  }
+  .risk-item .nm{ font-weight:700; font-size:13.5px; }
+  .risk-item .id{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); }
+  .status-pill{
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:11.5px; padding:3px 10px; border-radius:999px;
+  }
+  .status-pill.normal{ background:#E7F5EC; color:#1E5B37; }
+  .status-pill.risk{ background:#FCEEE8; color:var(--amber); }
+  .status-pill.kr{ background:#FBEAE6; color:var(--coral); }
+
+  .overview-table{ display:flex; flex-direction:column; gap:8px; }
+  .ov-row{
+    background:#FFFFFF; border:1px solid #E2EEF7; border-radius:12px; padding:10px 14px;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .ov-row .who{ flex:1; min-width:130px; }
+  .ov-row .who .nm{ font-weight:700; font-size:13.5px; }
+  .ov-row .who .id{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); }
+  .ov-metric{ font-size:12px; color:var(--ink-soft); text-align:center; min-width:56px; }
+  .ov-metric b{ display:block; font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--ink); }
+  .ov-entry{ background:#FFFFFF; border:1px solid #E2EEF7; border-radius:12px; padding:10px 14px; margin-bottom:8px; }
+  .ov-entry .ov-row{ background:none; border:none; padding:0; margin-bottom:0; }
+  .ov-scores{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; padding-top:10px; border-top:1px dashed #E2EEF7; }
+  .score-chip{
+    font-size:11.5px; color:var(--ink-soft); background:#F3F8FC; border:1px solid #E2EEF7;
+    border-radius:999px; padding:4px 10px; font-weight:500;
+  }
+  .score-chip b{ font-family:'IBM Plex Mono',monospace; color:var(--ink); font-weight:700; }
+
+  .cfg-toggle{
+    display:block; text-align:center; margin-top:16px; font-size:12.5px; color:#EAF5FF;
+    opacity:.9; background:none; border:none; cursor:pointer; text-decoration:underline; width:100%;
+  }
+  .cfg-panel{ display:none; margin-top:12px; }
+  .cfg-panel.show{ display:block; }
+  .cfg-panel input{
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line);
+    background:rgba(255,255,255,.08); color:var(--cream); font-family:'IBM Plex Mono',monospace; font-size:12.5px;
+    outline:none;
+  }
+  .cfg-panel p{ font-size:11.5px; color:#EAF5FF; margin:6px 0 0; opacity:.95; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="logo-badge" id="logoBadge">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="47" fill="#FFFFFF" stroke="#0B3A63" stroke-width="2"/>
+        <circle cx="50" cy="50" r="37" fill="none" stroke="#0B3A63" stroke-width="1.4" stroke-dasharray="3 5"/>
+        <path d="M55 18 L34 54 L47 54 L42 82 L68 42 L53 42 Z" fill="#1E88C7" stroke="#0B3A63" stroke-width="1.2"/>
+        <text x="50" y="93" text-anchor="middle" font-family="Arial" font-size="7.2" fill="#0B3A63">อาชีวศึกษา</text>
+      </svg>
+    </div>
+    <div class="eyebrow">Student & Class Portal</div>
+    <h1>ระบบคะแนนเก็บ &amp; เช็คชื่อ</h1>
+    <div class="org-card">
+      <span><b id="teacherName">-</b></span>
+      <span id="deptName">-</span>
+    </div>
+    <div><span class="term-tag" id="termTag">-</span></div>
+  </div>
+
+  <div class="ladder-rail" aria-hidden="true"></div>
+
+  <!-- HOME: choose role -->
+  <div class="panel show" id="panelHome">
+    <div class="grid2">
+      <button class="pick-card" id="cardStudent">
+        <div class="icon" style="background:#1E88C7">🎓</div>
+        <div class="name">นักเรียน: ตรวจสอบคะแนน</div>
+        <div class="desc">เลือกวิชา เลือกกลุ่ม แล้วกรอกรหัสของตัวเอง</div>
+        <div class="cta">เข้าใช้งาน →</div>
+      </button>
+      <button class="pick-card" id="cardAttendance">
+        <div class="icon" style="background:#2E7D4F">📋</div>
+        <div class="name">ครู: เช็คชื่อ</div>
+        <div class="desc">ติกขาด/ลา/มา/สาย รายสัปดาห์ ต้องใส่รหัสผ่านครู</div>
+        <div class="cta">เข้าใช้งาน →</div>
+      </button>
+      <button class="pick-card" id="cardScoreEntry">
+        <div class="icon" style="background:#B5651D">✏️</div>
+        <div class="name">ครู: บันทึกคะแนน</div>
+        <div class="desc">กรอก/แก้คะแนนเก็บทีละกลุ่ม ต้องใส่รหัสผ่านครู</div>
+        <div class="cta">เข้าใช้งาน →</div>
+      </button>
+      <button class="pick-card" id="cardOverview">
+        <div class="icon" style="background:#2B4C8C">📊</div>
+        <div class="name">ครู: ดูภาพรวม</div>
+        <div class="desc">สรุปคะแนน + ขาด/ลา/สาย พร้อมรายชื่อกลุ่มเสี่ยง</div>
+        <div class="cta">เข้าใช้งาน →</div>
+      </button>
+    </div>
+    <div class="privacy-note">โหมด "ครู" ทุกโหมดต้องใส่รหัสผ่านครูก่อนเข้าใช้งาน — ข้อมูลทั้งหมดเชื่อมกับ Google Sheet ไฟล์เดียวกัน</div>
+  </div>
+
+  <!-- PIN entry for teacher modes -->
+  <div class="panel" id="panelPin">
+    <button class="back-link" id="backPinToHome">‹ กลับหน้าแรก</button>
+    <div class="card pin-card">
+      <div class="hint" style="margin-top:0; text-align:center; font-size:14px;">กรุณาใส่รหัสผ่านครูเพื่อเข้าใช้งาน</div>
+      <input id="pinInput" type="password" inputmode="numeric" placeholder="••••" autocomplete="off" style="margin-top:12px;">
+      <button class="btn btn-block" id="pinSubmit">เข้าสู่ระบบ</button>
+      <div class="status" id="pinStatus"></div>
+    </div>
+  </div>
+
+  <!-- Subject selection (shared by every mode) -->
+  <div class="panel" id="panelSubjects">
+    <button class="back-link" id="backSubjectsDynamic">‹ กลับ</button>
+    <div class="grid2" id="subjectGrid"></div>
+  </div>
+
+  <!-- Group selection (shared by every mode) -->
+  <div class="panel" id="panelGroups">
+    <button class="back-link" id="backGroupsToSubjects">‹ กลับไปเลือกรายวิชา</button>
+    <div class="context-card">
+      <span class="cc-code" id="gcCode">-</span>
+      <span class="cc-name" id="gcName">-</span>
+      <span class="cc-hint" id="gcHint">เลือกกลุ่มเรียน/ห้องเรียนของคุณ</span>
+    </div>
+    <div class="grid2" id="groupGrid"></div>
+  </div>
+
+  <!-- STUDENT: id entry -->
+  <div class="panel" id="panelId">
+    <button class="back-link" id="backIdToGroups">‹ กลับไปเลือกกลุ่มเรียน</button>
+    <div class="card">
+      <div class="context-card" style="margin-bottom:18px;">
+        <span class="cc-code" id="selCode">-</span>
+        <span class="cc-name" id="selName" style="font-size:17px;">-</span>
+        <span class="cc-hint" id="selGroup"></span>
+      </div>
+      <div class="id-slot">
+        <input id="studentId" type="text" inputmode="numeric" placeholder="เลขประจำตัวนักเรียน เช่น 66001" autocomplete="off">
+        <button class="btn" id="checkBtn">ตรวจสอบ</button>
+      </div>
+      <div class="hint">คะแนนของแต่ละคนจะแสดงเฉพาะเมื่อกรอกรหัสของตัวเองเท่านั้น</div>
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+
+  <!-- STUDENT: result -->
+  <div class="panel" id="panelResult">
+    <button class="back-link" id="backToId">‹ ตรวจสอบรหัสอื่น</button>
+    <div class="profile">
+      <div class="ring-wrap">
+        <svg width="92" height="92">
+          <circle class="ring-track" cx="46" cy="46" r="38"></circle>
+          <circle class="ring-fill" id="ringFill" cx="46" cy="46" r="38"></circle>
+        </svg>
+        <div class="ring-center"><div class="pct" id="pctText">0%</div><div class="lbl">รวม</div></div>
+      </div>
+      <div class="profile-info">
+        <div class="subj" id="rSubject">-</div>
+        <div class="name" id="pName">-</div>
+        <div class="meta" id="pMeta">-</div>
+      </div>
+      <div class="grade-badge" id="pGrade">-</div>
+    </div>
+    <div class="ledger" id="attSummaryCard" style="display:none;">
+      <h3>การเข้าเรียน</h3>
+      <div class="stat-grid" style="margin-bottom:10px;">
+        <div class="stat-box"><div class="num" id="rAbsent">-</div><div class="lbl">ขาด (ครั้ง)</div></div>
+        <div class="stat-box"><div class="num" id="rLeave">-</div><div class="lbl">ลา (ครั้ง)</div></div>
+        <div class="stat-box"><div class="num" id="rLate">-</div><div class="lbl">สาย (ครั้ง)</div></div>
+      </div>
+      <div style="text-align:center;">
+        <span class="status-pill" id="rStatusPill">-</span>
+      </div>
+    </div>
+    <div class="ledger">
+      <h3>รายละเอียดคะแนน</h3>
+      <div id="rows"></div>
+    </div>
+    <div class="result-actions">
+      <button class="btn-ghost" id="changeSubjectBtn">เปลี่ยนรายวิชา</button>
+      <button class="btn-ghost" id="changeIdBtn">ตรวจสอบรหัสอื่น</button>
+    </div>
+  </div>
+
+  <!-- TEACHER: attendance -->
+  <div class="panel" id="panelAttendance">
+    <button class="back-link" id="backAttToGroups">‹ กลับไปเลือกกลุ่มเรียน</button>
+    <div class="context-card">
+      <span class="cc-code" id="attCode">-</span>
+      <span class="cc-name" id="attName2">-</span>
+      <span class="cc-hint" id="attGroup"></span>
+    </div>
+    <div class="card">
+      <div class="week-select-row">
+        <select id="weekSelect"></select>
+        <select id="holidayTypeSelect" class="holiday-select">
+          <option value="">ปกติ (เช็คชื่อ)</option>
+          <option value="หยุด">หยุด</option>
+          <option value="ไปราชการ">ไปราชการ</option>
+          <option value="อบรม">อบรม</option>
+        </select>
+      </div>
+      <div class="hint" style="margin-top:-6px; margin-bottom:12px;">✅ หน้าสัปดาห์ = เช็คชื่อครบทุกคนแล้ว (หรือประกาศเป็นวันหยุด/ราชการ/อบรมแล้ว)</div>
+      <div class="status" id="attStatus"></div>
+      <div class="roster-list" id="attRoster"></div>
+      <button class="btn btn-block" id="saveAttBtn">บันทึกการเช็คชื่อ</button>
+    </div>
+  </div>
+
+  <!-- TEACHER: score entry -->
+  <div class="panel" id="panelScoreEntry">
+    <button class="back-link" id="backScoreToGroups">‹ กลับไปเลือกกลุ่มเรียน</button>
+    <div class="context-card">
+      <span class="cc-code" id="scCode">-</span>
+      <span class="cc-name" id="scName">-</span>
+      <span class="cc-hint" id="scGroup"></span>
+    </div>
+    <div class="card">
+      <div class="status" id="scStatus"></div>
+      <div class="score-table" id="scoreTable"></div>
+      <button class="btn btn-block" id="saveScoreBtn">บันทึกคะแนน</button>
+    </div>
+  </div>
+
+  <!-- TEACHER: overview -->
+  <div class="panel" id="panelOverview">
+    <button class="back-link" id="backOvToGroups">‹ กลับไปเลือกกลุ่มเรียน</button>
+    <div class="context-card">
+      <span class="cc-code" id="ovCode">-</span>
+      <span class="cc-name" id="ovName">-</span>
+      <span class="cc-hint" id="ovGroup"></span>
+    </div>
+    <div class="status" id="ovStatus"></div>
+    <div id="ovBody" style="display:none;">
+      <div class="stat-grid">
+        <div class="stat-box"><div class="num" id="ovTotalStudents">-</div><div class="lbl">นักเรียนทั้งหมด</div></div>
+        <div class="stat-box"><div class="num" id="ovAvgScore">-</div><div class="lbl">คะแนนเฉลี่ย</div></div>
+        <div class="stat-box risk"><div class="num" id="ovRisk">-</div><div class="lbl">กลุ่มเสี่ยง</div></div>
+      </div>
+      <div class="risk-list" id="ovRiskList"></div>
+      <div class="ledger">
+        <h3>รายชื่อทั้งหมด</h3>
+        <div class="overview-table" id="ovTable"></div>
+      </div>
+    </div>
+  </div>
+
+  <button class="cfg-toggle" id="cfgToggle">ตั้งค่าลิงก์ข้อมูล (สำหรับครู/ผู้ดูแล)</button>
+  <div class="cfg-panel" id="cfgPanel">
+    <input id="apiUrlInput" type="text" placeholder="วาง Apps Script Web App URL ที่นี่ (ใช้ชั่วคราวในหน้านี้)">
+    <p>วิธีถาวร: แก้ค่า CONFIG.API_URL (และ CONFIG.LOGO_URL สำหรับตราสัญลักษณ์จริง) ในไฟล์ dashboard.html แล้วอัปโหลดใหม่ ดูขั้นตอนใน setup-guide.md</p>
+  </div>
+
+  <div class="footer-note">ข้อมูลคะแนนและเช็คชื่อดึงมาจาก Google Sheet ของครูผู้สอนโดยตรง</div>
+</div>
+
+<script>
+  // =========================================================
+  // ตั้งค่าหลัก — แก้ตรงนี้ทุกครั้งที่เปลี่ยนเทอม / เปลี่ยนรายวิชาที่สอน
+  // หมายเหตุ: ไม่ใส่รหัสผ่านครู (PIN) ไว้ในไฟล์นี้เด็ดขาด เพราะไฟล์นี้ทุกคนเปิดดูซอร์สได้
+  // รหัสผ่านครูตั้งไว้ฝั่ง Apps Script (Script Properties) เท่านั้น — ดู setup-guide.md
+  // =========================================================
+  const CONFIG = {
+    API_URL: "https://script.google.com/macros/s/AKfycbybDUismByTTJ7UNNTzEMybIa2loBFWnZgLJP9yjRk4MlK0vrEm-LZYSfGIJ7EWj2OjvA/exec", // เช่น "https://script.google.com/macros/s/XXXXXXXX/exec" (ดู setup-guide.md)
+    LOGO_URL: "logo-vec.png", // ใส่ path/URL รูปตราสัญลักษณ์จริง เช่น "logo-vec.png"
+    TEACHER: "ครูอิทธิกร หาญวิสุทธิ์",
+    DEPARTMENT: "แผนกวิชาช่างไฟฟ้ากำลัง วิทยาลัยเทคนิคโพธาราม",
+    TERM: "ภาคเรียนที่ 1 ปีการศึกษา 2569",
+
+    SUBJECTS: [
+      {
+        code: "20104-2001", name: "เครื่องกลไฟฟ้ากระแสตรง",
+        groups: [
+          { id: "20104-2001-1", label: "ปวช.2/1" },
+          { id: "20104-2001-2", label: "ปวช.2/2" }
+        ]
+      },
+      {
+        code: "20104-2002", name: "เครื่องกลไฟฟ้ากระแสสลับ",
+        groups: [
+          { id: "20104-2002-1", label: "ปวช.2/1" }
+        ]
+      },
+	{
+        code: "30104-2007", name: "ระบบควบคุมในงานอุตสาหกรรม",
+        groups: [
+          { id: "30104-2007-1", label: "ปวช.2/1" }
+        ]
+      }
+    ]
+  };
+
+  const ACCENTS = ["#123C69", "#1E88C7", "#2B4C8C", "#0E5C82", "#2E5A87", "#1B6FA8"];
+
+  document.getElementById('teacherName').textContent = CONFIG.TEACHER;
+  document.getElementById('deptName').textContent = CONFIG.DEPARTMENT;
+  document.getElementById('termTag').textContent = CONFIG.TERM;
+  if (CONFIG.LOGO_URL) {
+    document.getElementById('logoBadge').innerHTML = `<img src="${CONFIG.LOGO_URL}" alt="ตราสัญลักษณ์">`;
+  }
+
+  // ---------- state ----------
+  let mode = 'student';         // 'student' | 'attendance' | 'scoreEntry' | 'overview'
+  let teacherPin = '';
+  let currentSubjectDef = null;
+  let selectedSubject = null;   // {id, code, name, group}
+  let sessionApiUrl = '';
+
+  function getApiUrl(){ return CONFIG.API_URL || sessionApiUrl; }
+
+  // ---------- panels ----------
+  const panels = {};
+  ['panelHome','panelPin','panelSubjects','panelGroups','panelId','panelResult',
+   'panelAttendance','panelScoreEntry','panelOverview'].forEach(id => panels[id] = document.getElementById(id));
+
+  function showPanel(id){
+    Object.values(panels).forEach(p => p.classList.remove('show'));
+    panels[id].classList.add('show');
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  // ---------- HOME: role cards ----------
+  document.getElementById('cardStudent').addEventListener('click', () => {
+    mode = 'student';
+    document.getElementById('backSubjectsDynamic').onclick = () => showPanel('panelHome');
+    renderSubjectGrid();
+    showPanel('panelSubjects');
+  });
+  function goTeacherMode(m){
+    mode = m;
+    showPanel('panelPin');
+  }
+  document.getElementById('cardAttendance').addEventListener('click', () => goTeacherMode('attendance'));
+  document.getElementById('cardScoreEntry').addEventListener('click', () => goTeacherMode('scoreEntry'));
+  document.getElementById('cardOverview').addEventListener('click', () => goTeacherMode('overview'));
+
+  document.getElementById('backPinToHome').addEventListener('click', () => showPanel('panelHome'));
+  document.getElementById('pinSubmit').addEventListener('click', submitPin);
+  document.getElementById('pinInput').addEventListener('keydown', e => { if (e.key === 'Enter') submitPin(); });
+  function submitPin(){
+    const val = document.getElementById('pinInput').value.trim();
+    const st = document.getElementById('pinStatus');
+    if (!val){ st.className='status show error'; st.textContent='กรุณากรอกรหัสผ่าน'; return; }
+    teacherPin = val;
+    st.className = 'status';
+    document.getElementById('backSubjectsDynamic').onclick = () => showPanel('panelPin');
+    renderSubjectGrid();
+    showPanel('panelSubjects');
+  }
+
+  // ---------- SUBJECT / GROUP selection (shared) ----------
+  function renderSubjectGrid(){
+    const grid = document.getElementById('subjectGrid');
+    grid.innerHTML = '';
+    CONFIG.SUBJECTS.forEach((subj, i) => {
+      const accent = ACCENTS[i % ACCENTS.length];
+      const card = document.createElement('button');
+      card.className = 'pick-card';
+      card.innerHTML = `
+        <div class="icon" style="background:${accent}">${String(i + 1).padStart(2,'0')}</div>
+        <div class="code">${subj.code}</div>
+        <div class="name">${subj.name}</div>
+        <div class="badge">👥 ${subj.groups.length} กลุ่มเรียน</div>
+        <div class="cta">เลือกวิชานี้ →</div>
+      `;
+      card.addEventListener('click', () => openSubject(subj, accent));
+      grid.appendChild(card);
+    });
+  }
+
+  function openSubject(subj, accent){
+    currentSubjectDef = subj;
+    if (subj.groups.length === 1) {
+      selectGroup(subj, subj.groups[0], accent);
+      return;
+    }
+    document.getElementById('gcCode').textContent = subj.code;
+    document.getElementById('gcName').textContent = subj.name;
+    document.getElementById('gcHint').textContent = 'เลือกกลุ่มเรียน/ห้องเรียน';
+    const grid = document.getElementById('groupGrid');
+    grid.innerHTML = '';
+    subj.groups.forEach((grp, i) => {
+      const gAccent = ACCENTS[i % ACCENTS.length];
+      const card = document.createElement('button');
+      card.className = 'pick-card';
+      card.innerHTML = `
+        <div class="icon" style="background:${gAccent}">${String(i + 1).padStart(2,'0')}</div>
+        <div class="code">กลุ่มเรียน</div>
+        <div class="name">${grp.label}</div>
+        <div class="cta">เลือกกลุ่มนี้ →</div>
+      `;
+      card.addEventListener('click', () => selectGroup(subj, grp, gAccent));
+      grid.appendChild(card);
+    });
+    showPanel('panelGroups');
+  }
+  document.getElementById('backGroupsToSubjects').addEventListener('click', () => showPanel('panelSubjects'));
+
+  function backToGroupsOrSubjects(){
+    if (currentSubjectDef && currentSubjectDef.groups.length > 1) showPanel('panelGroups');
+    else showPanel('panelSubjects');
+  }
+  document.getElementById('backIdToGroups').addEventListener('click', backToGroupsOrSubjects);
+  document.getElementById('backAttToGroups').addEventListener('click', backToGroupsOrSubjects);
+  document.getElementById('backScoreToGroups').addEventListener('click', backToGroupsOrSubjects);
+  document.getElementById('backOvToGroups').addEventListener('click', backToGroupsOrSubjects);
+
+  function selectGroup(subj, grp, accent){
+    selectedSubject = { id: grp.id, code: subj.code, name: subj.name, group: grp.label };
+    if (mode === 'student'){
+      document.getElementById('selCode').textContent = subj.code;
+      document.getElementById('selName').textContent = subj.name;
+      document.getElementById('selGroup').textContent = `กลุ่ม/ห้อง ${grp.label}`;
+      document.getElementById('studentId').value = '';
+      hideStatus('status');
+      showPanel('panelId');
+      document.getElementById('studentId').focus();
+    } else if (mode === 'attendance'){
+      loadAttendance();
+    } else if (mode === 'scoreEntry'){
+      loadScoreEntry();
+    } else if (mode === 'overview'){
+      loadOverview();
+    }
+  }
+
+  document.getElementById('changeSubjectBtn').addEventListener('click', () => showPanel('panelSubjects'));
+  document.getElementById('changeIdBtn').addEventListener('click', () => showPanel('panelId'));
+
+  // ---------- config panel ----------
+  const cfgToggle = document.getElementById('cfgToggle');
+  const cfgPanel = document.getElementById('cfgPanel');
+  const apiUrlInput = document.getElementById('apiUrlInput');
+  cfgToggle.addEventListener('click', () => cfgPanel.classList.toggle('show'));
+  apiUrlInput.addEventListener('input', () => { sessionApiUrl = apiUrlInput.value.trim(); });
+
+  function showStatus(elId, kind, html){ const el=document.getElementById(elId); el.className='status show '+kind; el.innerHTML=html; }
+  function hideStatus(elId){ document.getElementById(elId).className='status'; }
+
+  // =========================================================
+  // STUDENT: score check (เดิม)
+  // =========================================================
+  const studentIdEl = document.getElementById('studentId');
+  const checkBtn = document.getElementById('checkBtn');
+  checkBtn.addEventListener('click', checkScore);
+  studentIdEl.addEventListener('keydown', e => { if (e.key === 'Enter') checkScore(); });
+
+  async function checkScore(){
+    const id = studentIdEl.value.trim();
+    hideStatus('status');
+    if (!selectedSubject){ showPanel('panelSubjects'); return; }
+    if (!id){ showStatus('status','error','กรุณากรอกเลขประจำตัวนักเรียนก่อนตรวจสอบ'); return; }
+    const apiUrl = getApiUrl();
+    if (!apiUrl){ showStatus('status','error','ยังไม่ได้ตั้งค่าลิงก์ดึงข้อมูล กดปุ่ม "ตั้งค่าลิงก์ข้อมูล" ด้านล่าง หรือใส่ค่าใน CONFIG.API_URL'); return; }
+
+    checkBtn.disabled = true;
+    showStatus('status','loading','กำลังตรวจสอบคะแนน...');
+    try {
+      const url = `${apiUrl}?action=score&id=${encodeURIComponent(id)}&subject=${encodeURIComponent(selectedSubject.id)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('network');
+      const data = await res.json();
+      if (data.error){ showStatus('status','error',data.error); return; }
+      if (!data.found){ showStatus('status','notfound', data.message || 'ไม่พบรหัสนักเรียนนี้ในระบบ'); return; }
+      hideStatus('status');
+      renderResult(data);
+      showPanel('panelResult');
+    } catch (err){
+      showStatus('status','error','เชื่อมต่อข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+    } finally { checkBtn.disabled = false; }
+  }
+
+  function renderResult(data){
+    document.getElementById('rSubject').textContent =
+      `${selectedSubject.code} · ${selectedSubject.name}${selectedSubject.group ? ' · กลุ่ม ' + selectedSubject.group : ''}`;
+    document.getElementById('pName').textContent = data.name || '-';
+    document.getElementById('pMeta').textContent = `รหัส ${data.studentId}${data.classroom ? ' · ' + data.classroom : ''}`;
+    document.getElementById('pGrade').textContent = data.grade ? `เกรด ${data.grade}` : '-';
+
+    const totalScore = Number(data.total?.score) || 0;
+    const totalMax = Number(data.total?.max) || 100;
+    const pct = totalMax > 0 ? Math.round((totalScore/totalMax)*100) : 0;
+    document.getElementById('pctText').textContent = pct + '%';
+    const ring = document.getElementById('ringFill');
+    const r = 38, circumference = 2*Math.PI*r;
+    ring.style.strokeDasharray = circumference;
+    ring.style.strokeDashoffset = circumference;
+    requestAnimationFrame(() => { ring.style.strokeDashoffset = circumference - (pct/100)*circumference; });
+
+    const rowsEl = document.getElementById('rows');
+    rowsEl.innerHTML = '';
+    (data.scores || []).forEach(item => {
+      const score = Number(item.score)||0, max = Number(item.max)||0;
+      const p = max>0 ? Math.min(100, Math.round((score/max)*100)) : 0;
+      const warn = p<50;
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `
+        <div class="row-top"><span class="label">${item.label}</span><span class="score">${score} / ${max}</span></div>
+        <div class="bar-track"><div class="bar-fill ${warn?'warn':''}" style="width:${p}%"></div></div>`;
+      rowsEl.appendChild(row);
+    });
+
+    // สรุปการเข้าเรียน (ขาด/ลา/สาย + สถานะความเสี่ยง) — แสดงเฉพาะเมื่อมีข้อมูลเช็คชื่อของวิชานี้
+    const attCard = document.getElementById('attSummaryCard');
+    if (data.attendance) {
+      attCard.style.display = 'block';
+      document.getElementById('rAbsent').textContent = data.attendance.absent === '' ? '-' : data.attendance.absent;
+      document.getElementById('rLeave').textContent = data.attendance.leave === '' ? '-' : data.attendance.leave;
+      document.getElementById('rLate').textContent = data.attendance.late === '' ? '-' : data.attendance.late;
+      const status = data.attendance.status || 'ปกติ';
+      const pill = document.getElementById('rStatusPill');
+      pill.textContent =
+        status === 'ขร.' ? 'ขร. — ขาดเกินเกณฑ์' :
+        status === 'เสี่ยง' ? 'เสี่ยง — ขาดบ่อย ควรระวัง' : 'ปกติ — เข้าเรียนสม่ำเสมอ';
+      pill.className = 'status-pill ' + (status === 'ขร.' ? 'kr' : status === 'เสี่ยง' ? 'risk' : 'normal');
+    } else {
+      attCard.style.display = 'none';
+    }
+  }
+
+  // =========================================================
+  // TEACHER: attendance
+  // =========================================================
+  let attData = null;
+
+  async function loadAttendance(){
+    document.getElementById('attCode').textContent = selectedSubject.code;
+    document.getElementById('attName2').textContent = selectedSubject.name;
+    document.getElementById('attGroup').textContent = `กลุ่ม/ห้อง ${selectedSubject.group}`;
+    document.getElementById('attRoster').innerHTML = '';
+    hideStatus('attStatus');
+    showPanel('panelAttendance');
+
+    const apiUrl = getApiUrl();
+    if (!apiUrl){ showStatus('attStatus','error','ยังไม่ได้ตั้งค่าลิงก์ข้อมูล (CONFIG.API_URL)'); return; }
+    showStatus('attStatus','loading','กำลังโหลดรายชื่อ...');
+    try {
+      const url = `${apiUrl}?action=attendancesheet&subject=${encodeURIComponent(selectedSubject.id)}&pin=${encodeURIComponent(teacherPin)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.error){ showStatus('attStatus','error',data.error); return; }
+      attData = data;
+      hideStatus('attStatus');
+      buildWeekSelect(data.weeks);
+      renderAttendanceRoster();
+    } catch(err){ showStatus('attStatus','error','โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่'); }
+  }
+
+  function isWeekChecked(w){
+    if (w.holidayType) return true;
+    const students = attData.students || [];
+    if (students.length === 0) return false;
+    return students.every(stu => {
+      const mark = (attData.attendance[stu.id] || {})[w.label];
+      return mark !== undefined && mark !== '';
+    });
+  }
+
+  function buildWeekSelect(weeks){
+    const sel = document.getElementById('weekSelect');
+    sel.innerHTML = '';
+    weeks.forEach(w => {
+      const opt = document.createElement('option');
+      opt.value = w.label;
+      const checkedMark = isWeekChecked(w) ? '✅ ' : '';
+      opt.textContent = `${checkedMark}${w.label} (${w.date || '-'})` + (w.holidayType ? ` — ${w.holidayType}` : '');
+      sel.appendChild(opt);
+    });
+    sel.onchange = () => { syncHolidayType(); renderAttendanceRoster(); };
+    syncHolidayType();
+  }
+  function syncHolidayType(){
+    const sel = document.getElementById('weekSelect');
+    const w = (attData.weeks || []).find(w => w.label === sel.value);
+    const htSel = document.getElementById('holidayTypeSelect');
+    htSel.value = (w && w.holidayType) ? w.holidayType : '';
+    document.getElementById('attRoster').style.display = htSel.value ? 'none' : 'flex';
+  }
+  document.getElementById('holidayTypeSelect').addEventListener('change', () => {
+    document.getElementById('attRoster').style.display = document.getElementById('holidayTypeSelect').value ? 'none' : 'flex';
+  });
+
+  function renderAttendanceRoster(){
+    const week = document.getElementById('weekSelect').value;
+    const rosterEl = document.getElementById('attRoster');
+    rosterEl.innerHTML = '';
+    rosterEl.style.display = 'flex';
+    (attData.students || []).forEach(stu => {
+      const current = (attData.attendance[stu.id] || {})[week] || '';
+      const row = document.createElement('div');
+      row.className = 'roster-row';
+      row.dataset.id = stu.id;
+      row.innerHTML = `
+        <div class="who"><div class="nm">${stu.name}</div><div class="id">รหัส ${stu.id}${stu.classroom ? ' · '+stu.classroom : ''}</div></div>
+        <div class="att-btns">
+          <button class="att-btn" data-code="ม">มา</button>
+          <button class="att-btn" data-code="ข">ขาด</button>
+          <button class="att-btn" data-code="ล">ลา</button>
+          <button class="att-btn" data-code="ส">สาย</button>
+        </div>`;
+      row.querySelectorAll('.att-btn').forEach(btn => {
+        if (btn.dataset.code === current) btn.classList.add('active');
+        btn.addEventListener('click', () => {
+          row.querySelectorAll('.att-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        });
+      });
+      rosterEl.appendChild(row);
+    });
+  }
+
+  document.getElementById('saveAttBtn').addEventListener('click', saveAttendance);
+  async function saveAttendance(){
+    const apiUrl = getApiUrl();
+    if (!apiUrl){ showStatus('attStatus','error','ยังไม่ได้ตั้งค่าลิงก์ข้อมูล'); return; }
+    const week = document.getElementById('weekSelect').value;
+    const holidayType = document.getElementById('holidayTypeSelect').value;
+    const entries = [];
+    if (!holidayType){
+      document.querySelectorAll('#attRoster .roster-row').forEach(row => {
+        const active = row.querySelector('.att-btn.active');
+        entries.push({ id: row.dataset.id, code: active ? active.dataset.code : '' });
+      });
+    }
+    showStatus('attStatus','loading','กำลังบันทึก...');
+    try {
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action:'saveAttendance', pin:teacherPin, subject:selectedSubject.id, week, holidayType, entries })
+      });
+      const data = await res.json();
+      if (data.error){ showStatus('attStatus','error',data.error); return; }
+      showStatus('attStatus','ok', data.message || 'บันทึกเรียบร้อย');
+      loadAttendance();
+    } catch(err){ showStatus('attStatus','error','บันทึกไม่สำเร็จ กรุณาลองใหม่'); }
+  }
+
+  // =========================================================
+  // TEACHER: score entry
+  // =========================================================
+  let scData = null;
+
+  async function loadScoreEntry(){
+    document.getElementById('scCode').textContent = selectedSubject.code;
+    document.getElementById('scName').textContent = selectedSubject.name;
+    document.getElementById('scGroup').textContent = `กลุ่ม/ห้อง ${selectedSubject.group}`;
+    document.getElementById('scoreTable').innerHTML = '';
+    hideStatus('scStatus');
+    showPanel('panelScoreEntry');
+
+    const apiUrl = getApiUrl();
+    if (!apiUrl){ showStatus('scStatus','error','ยังไม่ได้ตั้งค่าลิงก์ข้อมูล (CONFIG.API_URL)'); return; }
+    showStatus('scStatus','loading','กำลังโหลดข้อมูล...');
+    try {
+      const url = `${apiUrl}?action=scoresheet&subject=${encodeURIComponent(selectedSubject.id)}&pin=${encodeURIComponent(teacherPin)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.error){ showStatus('scStatus','error',data.error); return; }
+      scData = data;
+      hideStatus('scStatus');
+      renderScoreTable();
+    } catch(err){ showStatus('scStatus','error','โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่'); }
+  }
+
+  function renderScoreTable(){
+    const tbl = document.getElementById('scoreTable');
+    tbl.innerHTML = '';
+    (scData.students || []).forEach(stu => {
+      const rowScores = scData.scores[stu.id] || {};
+      const row = document.createElement('div');
+      row.className = 'score-row';
+      row.dataset.id = stu.id;
+      const fields = (scData.scoreColumns || []).map(col => `
+        <div class="score-field">
+          <label>${col.label} (เต็ม ${col.max})</label>
+          <input type="number" data-col="${col.label}" value="${rowScores[col.label] ?? ''}">
+        </div>`).join('');
+      row.innerHTML = `
+        <div class="who"><div class="nm">${stu.name}</div><div class="id">รหัส ${stu.id}${stu.classroom ? ' · '+stu.classroom : ''}</div></div>
+        <div class="score-inputs">${fields}</div>`;
+      tbl.appendChild(row);
+    });
+  }
+
+  document.getElementById('saveScoreBtn').addEventListener('click', saveScores);
+  async function saveScores(){
+    const apiUrl = getApiUrl();
+    if (!apiUrl){ showStatus('scStatus','error','ยังไม่ได้ตั้งค่าลิงก์ข้อมูล'); return; }
+    const entries = [];
+    document.querySelectorAll('#scoreTable .score-row').forEach(row => {
+      row.querySelectorAll('input[data-col]').forEach(inp => {
+        if (inp.value !== '') entries.push({ id: row.dataset.id, column: inp.dataset.col, value: Number(inp.value) });
+      });
+    });
+    showStatus('scStatus','loading','กำลังบันทึก...');
+    try {
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action:'saveScores', pin:teacherPin, subject:selectedSubject.id, entries })
+      });
+      const data = await res.json();
+      if (data.error){ showStatus('scStatus','error',data.error); return; }
+      showStatus('scStatus','ok', data.message || 'บันทึกคะแนนเรียบร้อย');
+    } catch(err){ showStatus('scStatus','error','บันทึกไม่สำเร็จ กรุณาลองใหม่'); }
+  }
+
+  // =========================================================
+  // TEACHER: overview
+  // =========================================================
+  async function loadOverview(){
+    document.getElementById('ovCode').textContent = selectedSubject.code;
+    document.getElementById('ovName').textContent = selectedSubject.name;
+    document.getElementById('ovGroup').textContent = `กลุ่ม/ห้อง ${selectedSubject.group}`;
+    document.getElementById('ovBody').style.display = 'none';
+    hideStatus('ovStatus');
+    showPanel('panelOverview');
+
+    const apiUrl = getApiUrl();
+    if (!apiUrl){ showStatus('ovStatus','error','ยังไม่ได้ตั้งค่าลิงก์ข้อมูล (CONFIG.API_URL)'); return; }
+    showStatus('ovStatus','loading','กำลังสรุปข้อมูล...');
+    try {
+      const url = `${apiUrl}?action=summary&subject=${encodeURIComponent(selectedSubject.id)}&pin=${encodeURIComponent(teacherPin)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.error){ showStatus('ovStatus','error',data.error); return; }
+      hideStatus('ovStatus');
+      renderOverview(data);
+    } catch(err){ showStatus('ovStatus','error','โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่'); }
+  }
+
+  function renderOverview(data){
+    document.getElementById('ovBody').style.display = 'block';
+    document.getElementById('ovTotalStudents').textContent = data.totalStudents ?? '-';
+    document.getElementById('ovAvgScore').textContent = data.avgScore != null ? `${data.avgScore}/${data.scoreMax}` : '-';
+    document.getElementById('ovRisk').textContent = (data.riskCount||0) + (data.krCount||0);
+
+    const riskListEl = document.getElementById('ovRiskList');
+    riskListEl.innerHTML = '';
+    const atRisk = (data.students||[]).filter(s => s.status === 'เสี่ยง' || s.status === 'ขร.');
+    if (!data.hasAttendance){
+      riskListEl.innerHTML = `<div class="status show notfound">ยังไม่พบแท็บเช็คชื่อของวิชานี้ — ระบบแสดงเฉพาะคะแนนเก็บ ยังไม่มีข้อมูลขาด/ลา/สาย</div>`;
+    } else if (atRisk.length === 0){
+      riskListEl.innerHTML = `<div class="status show ok">ไม่มีนักเรียนกลุ่มเสี่ยงในขณะนี้</div>`;
+    } else {
+      atRisk.forEach(s => {
+        const pillClass = s.status === 'ขร.' ? 'kr' : 'risk';
+        const item = document.createElement('div');
+        item.className = 'risk-item';
+        item.innerHTML = `
+          <div><div class="nm">${s.name}</div><div class="id">รหัส ${s.id}</div></div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:12px; color:var(--ink-soft);">ขาด ${s.absent} · ลา ${s.leave} · สาย ${s.late}</span>
+            <span class="status-pill ${pillClass}">${s.status}</span>
+          </div>`;
+        riskListEl.appendChild(item);
+      });
+    }
+
+    const tbl = document.getElementById('ovTable');
+    tbl.innerHTML = '';
+    const scoreColumns = data.scoreColumns || [];
+    (data.students||[]).forEach(s => {
+      const pillClass = s.status === 'ขร.' ? 'kr' : (s.status === 'เสี่ยง' ? 'risk' : 'normal');
+      const entry = document.createElement('div');
+      entry.className = 'ov-entry';
+      const scoreChips = scoreColumns.map(col => {
+        const val = (s.scores && s.scores[col.label] !== undefined && s.scores[col.label] !== '') ? s.scores[col.label] : '-';
+        return `<span class="score-chip">${col.label}: <b>${val}</b>/${col.max}</span>`;
+      }).join('');
+      entry.innerHTML = `
+        <div class="ov-row">
+          <div class="who"><div class="nm">${s.name}</div><div class="id">รหัส ${s.id}</div></div>
+          <div class="ov-metric">คะแนนรวม<b>${s.total ?? '-'}</b></div>
+          <div class="ov-metric">เกรด<b>${s.grade || '-'}</b></div>
+          <div class="ov-metric">ขาด<b>${s.absent === '' ? '-' : s.absent}</b></div>
+          <div class="ov-metric">ลา<b>${s.leave === '' ? '-' : s.leave}</b></div>
+          <div class="ov-metric">สาย<b>${s.late === '' ? '-' : s.late}</b></div>
+          <span class="status-pill ${pillClass}">${s.status}</span>
+        </div>
+        ${scoreChips ? `<div class="ov-scores">${scoreChips}</div>` : ''}
+      `;
+      tbl.appendChild(entry);
+    });
+  }
+</script>
+</body>
+</html>
